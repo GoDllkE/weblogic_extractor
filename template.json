@@ -1,0 +1,174 @@
+---
+profile_weblogic::single_domain::weblogic_password: "Livelo@@15"
+profile_weblogic::single_domain::weblogic_user:     "weblogic"
+profile_weblogic::single_domain::adminserver:       "VBNTST803LIV"
+
+profile_weblogic::single_domain::adminserver::domain_configuration:
+  #DefaultJPAProviderjpa_default_provider:            'org.eclipse.persistence.jpa.PersistenceProvider'
+  jta_max_transactions:            '/JTA/{DomainName}/MaxTransactions' # replace DomainName to realname of domain Ex. clmdev_domain
+  jta_transaction_timeout:         '/JTA/{DomainName}/TimeoutSeconds' # replace DomainName to realname of domain Ex. clmdev_domain
+  log_file_min_size:               '/Log/{DomainName}/FileMinSize' # replace DomainName to realname of domain Ex. clmdev_domain
+  log_filecount:                   '/Log/{DomainName}/FileCount' # replace DomainName to realname of domain Ex. clmdev_domain
+  log_filename:                    '/Log/{DomainName}/FileName' # replace DomainName to realname of domain Ex. clmdev_domain
+  log_number_of_files_limited:     '/Log/{DomainName}/NumberOfFilesLimited'  #return boolean (true/false)
+  log_rotate_logon_startup:        '/Log/{DomainName}/RotateLogOnStartup' #return boolean (true/false)
+  log_rotationtype:                '/Log/{DomainName}/RotationType' # replace DomainName to realname of domain Ex. clmdev_domain
+  security_crossdomain:            '/SecurityConfiguration/{DomainName}/CrossDomainSecurityEnabled' # replace DomainName to realname of domain Ex. clmdev_domain
+
+profile_weblogic::single_domain::adminserver::machines:
+  # Determine number of machines in the cluster, It's normaly has more than one only machine
+  VBNTST803LIV:
+    listenaddress:  '/Machines/{MachineName}/NodeManager/{MachineName}/ListenAddress' # replace MachineName to realname of machine Ex. VBNODB802LIV
+    listenport:     '/Machines/{MachineName}/NodeManager/{MachineName}/ListenPort' #replace MachineName to realname of machine Ex. VBNODB802LI
+    machinetype:    '/Machines/{MachineName}/Type' #replace MachineName to realname of machine Ex. VBNODB802LI
+    nmtype:         '/Machines/{MachineName}/NodeManager/{MachineName}/NMType' #replace MachineName to realname of machine Ex. VBNODB802LI
+
+profile_weblogic::single_domain::adminserver::clusters:
+  clm_cluster:
+    migrationbasis: '/Clusters/{ClusterName}/MigrationBasis' # replace ClusterName to realname of cluster Ex. clm_cluster
+    servers:        'Servers/{ServerName}' # Determine number of servers, after this, generate one array Ex. #['cbe1','cbe2','cmo1', 'cmo2']
+    messagingmode:  '/Clusters/{ClusterName}' # replace ClusterName to realname of cluster Ex. clm_cluster
+
+# O server AdminServer: é um server requerido, caso este não exista a automação irá falhar
+profile_weblogic::single_domain::adminserver::servers:
+  AdminServer:
+    arguments:                      '/Servers/AdminServer/ServerStart/AdminServer/Arguments' # # Necessary save as array. [arg1, arg2]
+    listenaddress:                  '/Servers/AdminServer/ListenAddress'
+    machine:                        '/Servers/AdminServer/Machine/{MachineName}/Name' #replace MachineName to realname of machine Ex. VBNODB802LI
+    listenport:                     '/Servers/AdminServer/ListenPort'
+    listenportenabled:              '/Servers/AdminServer/ListenPortEnabled' #return boolean (true/false)
+    max_message_size:               '/Servers/AdminServer/MaxMessageSize'
+    sslenabled:                     '/Servers/AdminServer/SSL/AdminServer/Enabled'
+    sslhostnameverificationignored: '/Servers/AdminServer/SSL/AdminServer/HostnameVerificationIgnored'
+    two_way_ssl:                    '/Servers/AdminServer/SSL/AdminServer/TwoWaySSLEnabled'
+    client_certificate_enforced:    '/Servers/AdminServer/SSL/AdminServer/ClientCertificateEnforced'
+    jsseenabled:                    '/Servers/AdminServer/SSL/AdminServer/JSSEEnabled'
+    custom_identity:                '0' # Necessary check this
+    logfilename:                    '/Servers/AdminServer/Log/AdminServer/FileName'
+    log_datasource_filename:        '/Servers/AdminServer/DataSource/AdminServer/DataSourceLogFile/AdminServer/FileName'
+    log_file_min_size:              '/Servers/AdminServer/DataSource/AdminServer/DataSourceLogFile/AdminServer/FileMinSize'
+    log_filecount:                  '/Servers/AdminServer/DataSource/AdminServer/DataSourceLogFile/AdminServer/FileCount'
+    log_number_of_files_limited:    '/Servers/AdminServer/DataSource/AdminServer/DataSourceLogFile/AdminServer/NumberOfFilesLimited'
+    log_rotate_logon_startup:       '/Servers/AdminServer/DataSource/AdminServer/DataSourceLogFile/AdminServer/RotateLogOnStartup'
+    log_rotationtype:               '/Servers/AdminServer/DataSource/AdminServer/DataSourceLogFile/AdminServer/RotationType'
+    log_http_filename:              '/Servers/AdminServer/WebServer/AdminServer/WebServerLog/AdminServer/FileName'
+    log_http_format_type:           '/Servers/AdminServer/WebServer/AdminServer/WebServerLog/AdminServer/LogFileFormat'
+    log_http_format:                '/Servers/AdminServer/WebServer/AdminServer/WebServerLog/AdminServer/ELFFields'
+    tunnelingenabled:               '/Servers/AdminServer/TunnelingEnabled'
+  server1:
+    arguments:                             '/Servers/{server1}/ServerStart/{server1}/Arguments'
+    listenport:                            '/Servers/{server1}/ListenAddress'
+    listenportenabled:                     '/Servers/{server1}/ListenPortEnabled'
+    logfilename:                           "/Servers/AdminServer/Log/AdminServer/FileName"
+    machine:                               '/Servers/{server1}/Machine/{MachineName}/Name'
+    sslenabled:                            '/Servers/{server1}/SSL/{server1}/Enabled'
+    sslhostnameverificationignored:        '/Servers/{server1}/SSL/{server1}/HostnameVerificationIgnored'
+    jsseenabled:                           '/Servers/{server1}/SSL/{server1}/JSSEEnabled'
+    custom_identity:                       '0' # Necessary check it
+    timeout:                               '60' #Necessary check it
+    max_message_size:                      'Servers/{server1}/MaxMessageSize'
+
+# JDBC Parameters
+profile_weblogic::single_domain::adminserver::datasources:
+   l:
+     ensure:                           'present'
+     drivername:                       /JDBCSystemResources/{clm_clusterJdbcDstx}/JDBCResource/{clm_clusterJdbcDstx}/JDBCDriverParams/{clm_clusterJdbcDstx}/DriverName
+     globaltransactionsprotocol:       /JDBCSystemResources/{clm_clusterJdbcDstx}/JDBCResource/{clm_clusterJdbcDstx}/JDBCDataSourceParams/{clm_clusterJdbcDstx}/GlobalTransactionsProtocol
+     initialcapacity:                  /JDBCSystemResources/{clm_clusterJdbcDstx}/JDBCResource/{clm_clusterJdbcDstx}/JDBCConnectionPoolParams/{clm_clusterJdbcDstx}/InitialCapacity
+     maxcapacity:                      /JDBCSystemResources/{clm_clusterJdbcDstx}/JDBCResource/{clm_clusterJdbcDstx}/JDBCConnectionPoolParams/{clm_clusterJdbcDstx}/MaxCapacity
+     mincapacity:                      /JDBCSystemResources/{clm_clusterJdbcDstx}/JDBCResource/{clm_clusterJdbcDstx}/JDBCConnectionPoolParams/{clm_clusterJdbcDstx}/MinCapacity
+     statementcachesize:               /JDBCSystemResources/{clm_clusterJdbcDstx}/JDBCResource/{clm_clusterJdbcDstx}/JDBCConnectionPoolParams/{clm_clusterJdbcDstx}/StatementCacheSize
+     jndinames:                        /JDBCSystemResources/{clm_clusterJdbcDstx}/JDBCResource/{clm_clusterJdbcDstx}/JDBCDataSourceParams/{clm_clusterJdbcDstx}/JNDINames
+     target:                           /JDBCSystemResources/clm_clusterJdbcDstx/Targets/clm_cluster # Save as Array: [folder1, folder2]
+     targettype:                       /JDBCSystemResources/clm_clusterJdbcDstx/Targets/clm_cluster/Type
+     testtablename:                    /JDBCSystemResources/{clm_clusterJdbcDstx}/JDBCResource/{clm_clusterJdbcDstx}/JDBCConnectionPoolParams/{clm_clusterJdbcDstx}/TestTableName
+     drivername:                       /JDBCSystemResources/{clm_clusterJdbcDstx}/JDBCResource/{clm_clusterJdbcDstx}/JDBCDriverParams/{clm_clusterJdbcDstx}/Url
+     user:                             /JDBCSystemResources/{clm_clusterJdbcDstx}/JDBCResource/{clm_clusterJdbcDstx}/JDBCDriverParams/{clm_clusterJdbcDstx}/Properties/{clm_clusterJdbcDstx}/Properties/user
+     password:                         /JDBCSystemResources/{clm_clusterJdbcDstx}/JDBCResource/{clm_clusterJdbcDstx}/JDBCDriverParams/{clm_clusterJdbcDstx}/Password
+     usexa:                            /JDBCSystemResources/{clm_clusterJdbcDstx}/JDBCResource/{clm_clusterJdbcDstx}/JDBCDriverParams/{clm_clusterJdbcDstx}/UseXaDataSourceInterface # Boolean (true/false, 1, 0)
+     testconnectionsonreserve:         /JDBCSystemResources/{clm_clusterJdbcDstx}/JDBCResource/{clm_clusterJdbcDstx}/JDBCConnectionPoolParams/{clm_clusterJdbcDstx}/TestConnectionsOnReserve
+     secondstotrustidlepoolconnection: /JDBCSystemResources/{clm_clusterJdbcDstx}/JDBCResource/{clm_clusterJdbcDstx}/JDBCConnectionPoolParams/{clm_clusterJdbcDstx}/SecondsToTrustAnIdlePoolConnection
+     testfrequency:                    /JDBCSystemResources/{clm_clusterJdbcDstx}/JDBCResource/{clm_clusterJdbcDstx}/JDBCConnectionPoolParams/{clm_clusterJdbcDstx}/TestFrequencySeconds
+     connectioncreationretryfrequency: /JDBCSystemResources/{clm_clusterJdbcDstx}/JDBCResource/{clm_clusterJdbcDstx}/JDBCConnectionPoolParams/{clm_clusterJdbcDstx}/ConnectionCreationRetryFrequencySeconds
+
+# Persistent Store Parameters
+# Check if cluster contain JMS and if has persistence store
+profile_weblogic::single_domain::adminserver::file_persistence_stores:
+  '{server}JmsFilestore':
+    directory:  '/FileStores/cmo1JmsFilestoreDirectory'
+    target:     /FileStores/cmo1JmsFilestore/Targets/{sever} # Necessary save as array Ex. ['cmo1']
+    targettype: /FileStores/cmo1JmsFilestore/Targets/cmo1/Type # Necessary save as array Ex. ['cmo1']
+
+# JMS server server instances
+profile_weblogic::single_domain::adminserver::jms_servers:
+  '{Server}JmsServer':
+    target:              '/serverConfig/JMSServers/{server}JmsServer/Targets/cbe1' # Necessary save as array Ex. ['cbe1']
+    targettype:          '/serverConfig/JMSServers/{server}JmsServer/Targets/{server}/Type' # Necessary save as array Ex.
+    persistentstore:     '/JMSServers/{server}/PersistentStore/{server}JmsFilestore/Name'
+    persistentstoretype: '/JMSServers/{server}/PersistentStore/{server}JmsFilestore/Type'
+
+profile_weblogic::single_domain::adminserver::jms_modules:
+  '{ClusterName}JmsModule':
+    target:     '/JMSSystemResources/{ClusterName}JmsModule/Targets/clm_cluster' # Necessary save as array Ex. ['clm_cluster']
+    targettype: '/JMSSystemResources/{ClusterName}JmsModule/Targets/clm_cluster/Type' # Necessary save as array Ex. ['Cluster']
+
+# subdeployment
+profile_weblogic::single_domain::adminserver::jms_subdeployments:
+ '/JMSSystemResources/{nameJmsModule}:{/JMSSystemResources/nameJmsModule/SubDeployments/{SubdeploymentName}}': # Ex. clm_clusterJmsModule:clm_clusterJmsSubdept
+   target:     '/JMSSystemResources/clm_clusterJmsModule/SubDeployments/clm_clusterJmsSubdept/Targets/clm_cluster' # Necessary save as array Ex. ['clm_cluster']
+   targettype: '/JMSSystemResources/clm_clusterJmsModule/SubDeployments/clm_clusterJmsSubdept/Targets/clm_cluster/Type' # Necessary save as array Ex. ['cluster']
+
+# Connection Factory
+profile_weblogic::single_domain::adminserver::jms_connection_factories:
+ clm_clusterJmsModule:/JMSSystemResources/clm_clusterJmsModule/JMSResource/clm_clusterJmsModule/ConnectionFactories/clm_clusterJmsCf/TransactionParams/clm_clusterJmsCf:
+   defaulttargeting: '0'
+   xaenabled:        '/JMSSystemResources/clm_clusterJmsModule/JMSResource/clm_clusterJmsModule/ConnectionFactories/clm_clusterJmsCf/TransactionParams/clm_clusterJmsCf/XAConnectionFactoryEnabled'
+   jmsmodule:        '/JMSSystemResources/clm_clusterJmsModule/JMSResource/clm_clusterJmsModule'
+   jndiname:         '/JMSSystemResources/clm_clusterJmsModule/JMSResource/clm_clusterJmsModule/ConnectionFactories/clm_clusterJmsCf/JNDIName'
+   subdeployment:    '/JMSSystemResources/clm_clusterJmsModule/JMSResource/clm_clusterJmsModule/ConnectionFactories/clm_clusterJmsCf/SubDeploymentName'
+
+# JMS TOPIC
+profile_weblogic::single_domain::adminserver::jms_topics:
+  clm_clusterJmsModule:clm_clusterJmsTopicInvalidation:
+    consumptionpaused:  /JMSSystemResources/clm_clusterJmsModule/JMSResource/clm_clusterJmsModule/UniformDistributedTopics/clm_clusterJmsTopicInvalidation/ConsumptionPausedAtStartup
+    defaulttargeting:   /JMSSystemResources/clm_clusterJmsModule/JMSResource/clm_clusterJmsModule/UniformDistributedTopics/clm_clusterJmsTopicInvalidation/DefaultTargetingEnabled
+    deliverymode:      /JMSSystemResources/clm_clusterJmsModule/JMSResource/clm_clusterJmsModule/UniformDistributedTopics/clm_clusterJmsTopicInvalidation/DeliveryParamsOverrides/clm_clusterJmsTopicInvalidation/DeliveryMode
+    timetodeliver:      /JMSSystemResources/clm_clusterJmsModule/JMSResource/clm_clusterJmsModule/UniformDistributedTopics/clm_clusterJmsTopicInvalidation/DeliveryParamsOverrides/clm_clusterJmsTopicInvalidation/TimeToDeliver
+    distributed:        '1' # A boolean, non-oracle property, to check if creation of some other properties will go on! (Check wlstScript20180618-11251-13k1hbt.py for more info)
+    insertionpaused:    /JMSSystemResources/clm_clusterJmsModule/JMSResource/clm_clusterJmsModule/UniformDistributedTopics/clm_clusterJmsTopicInvalidation/InsertionPausedAtStartup
+    jmsmodule:          /JMSSystemResources/clm_clusterJmsModule
+    jndiname:           /JMSSystemResources/clm_clusterJmsModule/JMSResource/clm_clusterJmsModule/UniformDistributedTopics/clm_clusterJmsTopicInvalidation/JNDIName
+    productionpaused:   /JMSSystemResources/clm_clusterJmsModule/JMSResource/clm_clusterJmsModule/UniformDistributedTopics/clm_clusterJmsTopicInvalidation/ProductionPausedAtStartup
+    subdeployment:      /JMSSystemResources/clm_clusterJmsModule/JMSResource/clm_clusterJmsModule/UniformDistributedTopics/clm_clusterJmsTopicInvalidation/SubDeploymentName
+
+# JMS Queue
+profile_weblogic::single_domain::adminserver::jms_queues:
+ clm_clusterJmsModule:clm.jms.queue.closeCustomerProcessing:
+   consumptionpaused: '/JMSSystemResources/clm_clusterJmsModule/JMSResource/clm_clusterJmsModule/UniformDistributedQueues/clm.jms.queue.closeCustomerProcessing/ConsumptionPausedAtStartup' # return boolean
+   defaulttargeting: '/JMSSystemResources/clm_clusterJmsModule/JMSResource/clm_clusterJmsModule/UniformDistributedQueues/DefaultTargetingEnabled'
+   timetodeliver: '/JMSSystemResources/clm_clusterJmsModule/JMSResource/clm_clusterJmsModule/UniformDistributedQueues/clm.jms.queue.closeCustomerProcessing/DeliveryParamsOverrides/clm.jms.queue.closeCustomerProcessing/TimeToDeliver'
+   deliverymode: '/JMSSystemResources/clm_clusterJmsModule/JMSResource/clm_clusterJmsModule/UniformDistributedQueues/clm.jms.queue.closeCustomerProcessing/DeliveryParamsOverrides/clm.jms.queue.closeCustomerProcessing/DeliveryMode'
+   distributed: '1' # Check it
+   insertionpaused: '/JMSSystemResources/clm_clusterJmsModule/JMSResource/clm_clusterJmsModule/UniformDistributedQueues/clm.jms.queue.closeCustomerProcessing/InsertionPausedAtStartup'
+   jmsmodule: '/JMSSystemResources/clm_clusterJmsModule'
+   jndiname: '/JMSSystemResources/clm_clusterJmsModule/JMSResource/clm_clusterJmsModule/UniformDistributedQueues/clm.jms.queue.closeCustomerProcessing'
+   productionpaused: '/JMSSystemResources/clm_clusterJmsModule/JMSResource/clm_clusterJmsModule/UniformDistributedQueues/clm.jms.queue.closeCustomerProcessing/ProductionPausedAtStartup'
+   subdeployment: '/JMSSystemResources/clm_clusterJmsModule/SubDeployments/clm_clusterJmsSubdept/Targets/clm_cluster'
+
+# WorkManager constrain
+profile_weblogic::single_domain::adminserver::workmanager_constraints:
+ workmanager_constraintsName: # Ex. defaultFairShareReqClass:
+   constrainttype: '/SelfTuning/clmdev_domain/FairShareRequestClasses/defaultFairShareReqClass'
+   constraintvalue: '/SelfTuning/clmdev_domain/FairShareRequestClasses/defaultFairShareReqClass/FairShare'
+   target: '/SelfTuning/clmdev_domain/WorkManagers/clmWmAccrualFile/FairShareRequestClass/wmAccrualFileFsrc/Targets/clm_cluster/'
+   targettype: '/SelfTuning/clmdev_domain/WorkManagers/clmWmAccrualFile/FairShareRequestClass/wmAccrualFileFsrc/Targets/clm_cluster/Type' #['Cluster']
+
+# Workmanager
+profile_weblogic::single_domain::adminserver::workmanagers:
+ default:
+   capacity:                /SelfTuning/clmdev_domain/Capacities/defaultCapacityConstraint/Count
+   fairsharerequestclass:   /SelfTuning/clmdev_domain/FairShareRequestClasses/defaultFairShareReqClass/FairShare
+   maxthreadsconstraint:    /SelfTuning/clmdev_domain/MinThreadsConstraints/defaultMaxThreadsConstraint/Count
+   minthreadsconstraint:    /SelfTuning/clmdev_domain/MinThreadsConstraints/defaultMinThreadsConstraint/Count
+   target:                  /SelfTuning/clmdev_domain         # Array of targets(folder). [folder1, folder2]
+   targettype:              /SelfTuning/clmdev_domain/Type
