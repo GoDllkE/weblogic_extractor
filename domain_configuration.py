@@ -13,6 +13,7 @@ def domain_configuration(parameters):
 
 def convert_dict(lista):
     dic = {}
+    lista = lista[0].split(",")
     for item in lista:
         dic[item.split(':',1)[0]] = item.split(':',1)[1]
     return dic
@@ -27,4 +28,3 @@ connect(username, password, 't3://' + admin + ':7001')
 
 ret = domain_configuration(convert_dict(sys.argv[1:]))
 print ret
-
