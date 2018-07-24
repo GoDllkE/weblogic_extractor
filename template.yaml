@@ -4,7 +4,7 @@ profile_weblogic::single_domain::adminserver::source_scripts: "puppet:///extra_f
 
 profile_weblogic::single_domain::weblogic_password: "Livelo@@15"
 profile_weblogic::single_domain::weblogic_user:     "weblogic"
-profile_weblogic::single_domain::adminserver:       "VBNTST803LIV"
+profile_weblogic::single_domain::adminserver:       "<some-hostname>"
 
 # Review: Ok
 profile_weblogic::single_domain::adminserver::domain_configuration:
