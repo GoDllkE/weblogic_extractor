@@ -1,26 +1,47 @@
 import os
+import re
 import sys
+
+import weblogic.security.internal.SerializedSystemIni
+import weblogic.security.internal.encryption.ClearOrEncryptedService
 
 sys.path.insert(0, 'functions/')
 from extensions import convert_dict
 
-def get_clusters():
-    """
-        This function get clusters through cmo method.
-        :return: A list of clusters
-    """
+
+def get_folders(location):
+    # Return a list of folders
     try:
-        cd('/JDBCSystemResources')
-        clusters = cmo.getClusters()
-        lista = []
-        for cluster in clusters:
-            a = str(cluster)
-            a = a.split("=")
-            a = a[1].split(",")
-            lista.append(a[0])
-        return lista
+        cd(location)
+        redirect('/dev/null', 'false')
+        folders = list(ls(returnMap='true', returnType='c'))
+        redirect('/dev/null', 'true')
+        return folders
     except raiseWLSTException:
         raise
+
+def get_domain():
+    """
+    Function for keys lookup.
+        :param parameters:      Receive a Dictonary type.
+        :return:                Return dictonary if real values
+    """
+    try:
+        domain_name = get('Name')
+        return domain_name
+    except raiseWLSTException:
+        raise
+
+def get_clusters(key_path):
+    """
+        This function get clusters from a specified path
+        :return: A list of clusters
+    """
+    path = ""
+    path_list = key_path.split('/')[1:4]
+    for item in path_list:
+        path = path + '/' + item
+    return get_folders(str(path))[0]
 
 def get_jdbc_clusters():
     """
@@ -28,23 +49,15 @@ def get_jdbc_clusters():
         :return: A list of clusters
     """
     try:
-        cd('/JDBCSystemResources')
-        clusters = cmo.getJDBCSystemResources()
-        lista = []
-        for cluster in clusters:
-            a = str(cluster)
-            a = a.split("=")
-            a = a[1].split(",")
-            lista.append(a[0])
-        return lista
+        return get_folders('/JDBCSystemResources')
     except raiseWLSTException:
         raise
 
 def get_datasources_targets(data, cluster):
     try:
+        lista = []
         cd(data[cluster]['target'])
         servers = cmo.getTargets()
-        lista = []
         for server in servers:
             srv = str(server).split("=")[1]
             srv = srv.split(",")[0]
@@ -65,6 +78,66 @@ def get_jndinames(value):
     except raiseWLSTException:
         raise
 
+def get_xml_list(domain_name):
+    lista = []
+    config_paths = [
+        '/app/product/oracle/wlsdomains/{domainName}/config/jdbc/',
+        '/app/oracle/admin/{domainName}/aserver/{domainName}/config/jdbc/'
+    ]
+
+    for item in config_paths:
+        # Format path from list
+        item = item.replace('{domainName}', domain_name)
+
+        # Check if it exists and have some 'xml' file in.
+        if os.path.isdir(item):
+            files = os.listdir(item)
+            for content in files:
+                if content.endswith('.xml'):
+                    # Append file to list
+                    lista.append(item + content)
+                    break
+    return lista
+
+def clear_tags(hashtag):
+    # Format hash throughout regex
+    regex = re.compile('<.*?>')
+    textr = re.sub(regex, '', hashtag)
+    return textr
+
+def decrypt_password(hashtext, cluster_name):
+    # Instance of some weblogic core modules to decrypt password
+    service = weblogic.security.internal.SerializedSystemIni.getEncryptionService(cluster_name)
+    crypt = weblogic.security.internal.encryption.ClearOrEncryptedService(service)
+    return crypt.decrypt(hashtext)
+
+def return_password(lista_xml):
+    # Linter troubleshooting
+    domain = None
+    content = None
+
+    for item in lista_xml:
+        # Load file content
+        file_data = open(item, 'rt')
+        content = file_data.read().split()
+        # Check path to split and retrieve domain path
+        if 'wlsdomains' in item:
+            domain = item.split('/')[1:6]
+        else:
+            domain = item.split('/')[1:7]
+
+    # Format domain path
+    dom = ""
+    for item in domain:
+        dom = dom + '/' + item
+
+    # Decrypt key
+    hashtag = None
+    for item in content:
+        if 'password-encrypted' in item:
+            hashtag = clear_tags(item)
+    return decrypt_password(hashtag, dom)
+
 def get_params(dicionario):
     """
         This function lookup the key values from certain dictionary
@@ -72,16 +145,17 @@ def get_params(dicionario):
     """
     for cluster in dicionario:
         for key in dicionario[cluster]:
-            if key == 'target':
+            if key in ['target']:
                 dicionario[cluster][key] = get_datasources_targets(dicionario, cluster)
-            elif key == 'jndinames':
+            elif key in ['jndinames']:
                 dicionario[cluster][key] = str(get_jndinames(get(dicionario[cluster][key]))).split()
             elif key in ['usexa', 'testconnectionsonreserve']:
                 dicionario[cluster][key] = str(get(dicionario[cluster][key]))
+            elif key in ['password']:
+                continue
             else:
                 dicionario[cluster][key] = get(dicionario[cluster][key])
     return dicionario
-
 
 # Main
 # Load credentials
@@ -97,23 +171,37 @@ connect(username, password, 't3://' + hostname + ':7001')
 data = convert_dict(contents)
 
 # Lookup for base cluster keys and save into a list
+domain_name = get_domain()
 cluster_list = get_jdbc_clusters()
 
 # Interactive array and replace variables with contains '{clusterName}' to another receive parameter
 dicionario = {}
 for jdbc_cluster in cluster_list:
     dicionario[jdbc_cluster] = {}
+
     for key in data:
-        cluster_name = get_clusters()[0]
+        # Make substitutions
         dicionario[jdbc_cluster][key] = data[key].replace('{ClusterJDBC}', jdbc_cluster)
-        dicionario[jdbc_cluster][key] = dicionario[jdbc_cluster][key].replace('{ClusterName}', str(cluster_name))
+
+        # Only exception on datasources. Can change as no pattern is settled.
+        if key in ['targettype']:
+            # Get the ClusterName in specified path
+            cluster_name = get_clusters(str(dicionario[jdbc_cluster][key]))
+
+            # Make substitution
+            dicionario[jdbc_cluster][key] = dicionario[jdbc_cluster][key].replace('{ClusterName}', str(cluster_name))
+
+        # Ensure password configurations
+        elif key in ['password']:
+            lista_files_xml = get_xml_list(domain_name)
+            dicionario[jdbc_cluster][key] = return_password(lista_files_xml)
+
     continue
 
 #
 data = get_params(dicionario)
 
 for key in data:
-    data[key]['password'] = ""
     data[key]['ensure'] = "present"
 
 print data

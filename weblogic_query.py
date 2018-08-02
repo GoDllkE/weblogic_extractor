@@ -2,20 +2,9 @@ import os
 import sys
 import ast
 import yaml
-import fnmatch
+import getopt
 import subprocess as sub
 
-
-def gen_find(filepat, topdir):
-    """
-    Function to find file recursively.
-        :param filepat:     File name
-        :param topdir:      Top dir name
-        :return:            Full path of file
-    """
-    for path, dirlist, filelist in os.walk(topdir):
-        for name in fnmatch.filter(filelist, filepat):
-            yield os.path.join(path,name)
 
 def data_load(file_input):
     """
@@ -89,7 +78,7 @@ def content_filter(content):
 def call_children(credentials, event_name, content):
     """
     Function to call children functions to work with pre-historic WLST
-    functionalities.
+    functionality.
         :param credentials:     Receive a list with all credentials to an
         Weblogic server.
         :param event_name:      Receive the name of the function/script to call
@@ -99,20 +88,26 @@ def call_children(credentials, event_name, content):
         :return:                Return the raw output from WLST subprocess.
     """
     # Static definitions
+    wlst_path = None
     username = credentials[0]
     password = credentials[1]
     hostname = credentials[2]
-    event_path = './functions/{0}.py'.format(event_name)
+    event_path = 'functions/{0}.py'.format(event_name)
 
-    wlst_path = gen_find("wlst.sh", "/app")
-    for item in wlst_path:
-        wlst_path = item
-        break
+    # List of possible locations for WLST
+    wlst_path_list = [
+        '/app/product/oracle/oracle_common/common/bin/wlst.sh',
+        '/app/oracle/product/fmw/oracle_common/common/bin/wlst.sh',
+        '/app/product/oracle/fmw/oracle_common/common/bin/wlst.sh'
+    ]
 
-    # Ensure wlst exists to call it
-    if not os.path.isfile(wlst_path):
-        print "Error: 'Weblogic Script Tool' not found."
-        exit(1)
+    for path in wlst_path_list:
+        if os.path.isfile(path):
+            wlst_path = path
+
+    if wlst_path is None:
+        print 'Error: No WLST found!'
+        sys.exit(0)
 
     # Ensure event_path exists to call it
     if not os.path.isfile(event_path):
@@ -121,12 +116,12 @@ def call_children(credentials, event_name, content):
 
     # Execute process
     if type(content) == list:
-        ps = sub.Popen((wlst_path, event_path, username, password, hostname, str(content[0]), str(content[1])), stdout = sub.PIPE)
+        ps = sub.Popen((wlst_path, event_path, username, password, hostname, str(content[0]), str(content[1])), stdout=sub.PIPE)
     else:
-        ps = sub.Popen((wlst_path, event_path, username, password, hostname, str(content)), stdout = sub.PIPE)
+        ps = sub.Popen((wlst_path, event_path, username, password, hostname, str(content)), stdout=sub.PIPE)
     ps.wait()
 
-    # Get ouput and return it
+    # Get output and return it
     output, errors = ps.communicate()
     output = output.splitlines()
     return output
@@ -135,16 +130,23 @@ def call_children(credentials, event_name, content):
 # Script session
 # Main
 # Set debug option, useful when developing some feature
-debug = True
+debug = False
+verbose = False
+skip_event = False
 
-# Load template
+# Load template.
+# Change it as your necessity demands
 data = {}
 hiera_file = [
-    "teste.yaml",
-    "template-teste.yaml",
-    "template.yaml"
+    "resources/teste.yaml",
+    "resources/template-teste.yaml",
+    "resources/template.yaml"
 ]
 
+# List of empty keys founded on runtime.
+remove_keys_list = []
+
+# Template loading hierarchy
 for template_file in hiera_file:
     if os.path.isfile(template_file):
         data = data_load(template_file)
@@ -152,12 +154,50 @@ for template_file in hiera_file:
     else:
         continue
 
+# Check credentials
+# If they where default values... then update they and update template file.
+# For username
+if data['profile_weblogic::single_domain::weblogic_username'] == '<some-username>':
+    data['profile_weblogic::single_domain::weblogic_username'] = raw_input("Insert the WLST username (default: weblogic): ")
+    if len(data['profile_weblogic::single_domain::weblogic_username']) < 3:
+        data['profile_weblogic::single_domain::weblogic_username'] = 'weblogic'
+
+# For password
+if data['profile_weblogic::single_domain::weblogic_password'] == '<some-password>':
+    data['profile_weblogic::single_domain::weblogic_password'] = raw_input("Insert the WLST password: ")
+
+# For hostname
+if data['profile_weblogic::single_domain::weblogic_hostname'] == '<some-hostname>':
+    data['profile_weblogic::single_domain::weblogic_hostname'] = raw_input("Insert the WLST hostname (default: "+os.uname()[1]+"): ")
+    if len(data['profile_weblogic::single_domain::weblogic_hostname']) < 3:
+        data['profile_weblogic::single_domain::weblogic_hostname'] = os.uname()[1]
+
 # Get access credentials to weblogic server
 credentials = [
-    '{0}'.format(data['profile_weblogic::single_domain::weblogic_user']),
+    '{0}'.format(data['profile_weblogic::single_domain::weblogic_username']),
     '{0}'.format(data['profile_weblogic::single_domain::weblogic_password']),
-    '{0}'.format(data['profile_weblogic::single_domain::adminserver']),
+    '{0}'.format(data['profile_weblogic::single_domain::weblogic_hostname']),
 ]
+
+# Update template for future runtime
+for template_file in hiera_file:
+    if os.path.isfile(template_file):
+        with open(template_file, "w") as temp_file:
+            yaml.dump(data, temp_file, default_flow_style=False)
+        break
+    else:
+        continue
+
+# Remove specified key if not CLM technologies
+for item in ['clm', 'tst']:
+    if item in credentials[2]:
+        if 'profile_weblogic::single_domain::livelo_custom_directories' in remove_keys_list:
+            remove_keys_list.remove('profile_weblogic::single_domain::livelo_custom_directories')
+        break
+    else:
+        if 'profile_weblogic::single_domain::livelo_custom_directories' not in remove_keys_list:
+            remove_keys_list.append('profile_weblogic::single_domain::livelo_custom_directories')
+        continue
 
 # Trigger all events on template
 for index, key in enumerate(data):
@@ -169,23 +209,41 @@ for index, key in enumerate(data):
     event = key.split(":")
     event = event[-1]
 
-    # Ignore key
+    # Ignore keys
     if event in ['livelo_custom_directories', 'source_scripts']:
         continue
 
-    # DEBUG feature.
-    # enable otion to run only in one key
-    if len(sys.argv) > 1:
-        if sys.argv[1] != event:
-            # Go to next iteration
-            print "Skipping event: " + event
-            continue
+    # Retrieve options and arguments
+    opts, args = getopt.getopt(sys.argv[1:], "dv", ['debug', 'verbose'])
+
+    # Check if DEBUG option is enabled
+    for option, value in opts:
+        if option in ('-d', '--debug'):
+            debug = True
+        elif option in ('-v', '--verbose'):
+            verbose = True
         else:
-            print "Triggering event: " + event
+            debug = False
+            continue
+    #
 
+    # Retrieve arguments
+    if len(args) > 0:
+        for arg_name in args:
+            if arg_name != event:
+                skip_event = True
+            else:
+                print "Triggering specified event: " + event
+                skip_event = False
+                break
 
-    # Check if there's keys inside the gathered key that works as
-    #  a template or for some static usage.
+    # Skip event
+    if skip_event:
+        remove_keys_list.append(key)
+        skip_event = False
+        continue
+
+    # Check if there's keys inside the gathered key that works as a template or for some static usage.
     if key_is_template(data[key]):
         # Create list of contents
         contents = []
@@ -196,46 +254,54 @@ for index, key in enumerate(data):
         # Get contents (string type)
         contents = convert_dic_to_string(data[key])
 
+    if debug:
+        print "-----------------------------------------------------------"
+        print "DEBUG: Showing data gathered at instance:"
+
     # Call functions
-    print "Retrieving: " + event
-    if debug == True:
-        print "Contents: " + str(contents)
+    if verbose or debug:
+        print "Retrieving: " + event
     status = call_children(credentials, event, contents)
 
     # Get only valid outputs from all of it
-    if status is not None:
-        result = content_filter(status)
-    else:
-        result = None
+    result = content_filter(status)
 
-    # Collect data gathered and update json
-    if result is not None:
+    if yaml.load(result) == {}:
+        if verbose:
+            print "Info: no content found at event '" + event + "'."
+        remove_keys_list.append(str(key))
+        continue
+    else:
+        # Collect data gathered and update json
         data[key] = yaml.load(result)
 
     # end of loop
-    if debug is True:
-      print "-----------------------------------------------------------"
-      print "DEBUG: Showing data gathered at instance:"
-      print "Event: {0}".format(event)
-
-      print "Raw output:"
-      for line in status:
-        print "\t" + line
-      print "\n"
-
-      print "Relevant output"
-      print result
-      print "\n"
-
-      print "End of DEBUG mode"
-      print "-----------------------------------------------------------"
-
+    if debug:
+        print "Raw output:"
+        for line in status:
+            print "\t" + line
+        print "\n"
+        print "Relevant output"
+        print result
+        print "\n"
+        print "End of DEBUG for event " + event
     #
     continue
 #
-## Print transformed yaml-template
-if debug is False:
-    with open ('gathered-data.yaml', 'w') as outfile:
-        yaml.dump(data, outfile, default_flow_style = False)
-    print "Done!"
+if verbose:
+    print "Info: Removing empty content..."
+
+# Remove empty keys
+for item in remove_keys_list:
+    data.pop(item)
+
+if verbose:
+    print "Info: Generating file..."
+
+# Print transformed yaml-template
+with open(credentials[2].split('.')[0].lower() + '.yaml', 'w') as outfile:
+    yaml.dump(data, outfile, default_flow_style=False)
+
+# End of run
+print "Extractor process complete!"
 

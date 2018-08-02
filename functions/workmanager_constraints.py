@@ -33,7 +33,7 @@ def get_workerstype(domain):
 
         # Exceptions list
         for item in workerstype:
-            if item not in ['FairShareRequestClasses', 'MinThreadsConstraint', 'MaxThreadsConstraint', 'Capacities']:
+            if item not in ['FairShareRequestClasses', 'MinThreadsConstraints', 'MaxThreadsConstraints', 'Capacities']:
                 workerstype.remove(item)
 
         # Dont know why dont del this one

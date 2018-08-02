@@ -12,9 +12,12 @@ def get_jms_modules():
     try:
         cd('/JMSSystemResources/')
         jms_modules = str(cmo.getJMSSystemResources())
-        jms_modules = jms_modules.split("=", 1)[1]
-        jms_modules = jms_modules.split(",", 1)[0]
-        return jms_modules
+        if '=' in jms_modules:
+            jms_modules = jms_modules.split("=", 1)[1]
+            jms_modules = jms_modules.split(",", 1)[0]
+            return jms_modules
+        else:
+            return None
     except raiseWLSTException:
         raise
 
@@ -97,7 +100,13 @@ data = convert_dict(contents)
 
 # Get keys and return a dictionary
 jms_module = get_jms_modules()
-jms_subdeployment_list = get_jms_subdeployments(jms_module)
+
+#
+if jms_module is None:
+    print '{}'
+    sys.exit(0)
+else:
+    jms_subdeployment_list = get_jms_subdeployments(jms_module)
 
 # Create dict
 dic = {}

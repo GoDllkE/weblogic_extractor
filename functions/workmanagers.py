@@ -13,21 +13,24 @@ def get_domainName():
     try:
         cd('/SelfTuning')
         domain_name = str(cmo.getSelfTuning())
-        domain_name = domain_name.split("=", 1)[1]
-        domain_name = domain_name.split(",", 1)[0]
-        return domain_name
+        if '=' in domain_name:
+            domain_name = domain_name.split("=", 1)[1]
+            domain_name = domain_name.split(",", 1)[0]
+            return domain_name
+        else:
+            return None
     except raiseWLSTException:
         raise
 
 def get_clusters():
-    """ 
+    """
         This function get clusters through cmo method.
         :return: A list of clusters
     """
     try:
+        lista = []
         cd('/SelfTuning')
         clusters = cmo.getClusters()
-        lista = []
         for cluster in clusters:
             a = str(cluster)
             a = a.split("=")
@@ -69,15 +72,25 @@ def get_worker(path):
             :param path: Receive path of SelfTuning Ex. /SelfTuning/domain/WorkManagers....
             :return: Only type of workmanager
     """
+    # Format path
     path = path.split("/")
     p = '/'.join(path[0:6])
     cd(p)
+
+    # Get content from path
     redirect('/dev/null', 'false')
     l = ls(returnMap='True', returnType='c')
     redirect('/dev/null', 'true')
-    l = l.split()
-    l = str(l[1])
-    return l
+
+    # Check if there's any relevant value
+    if l is None or l is [] or len(l) < 3:
+        # Return nothing
+        return None
+    else:
+        # Format and return value
+        l = l.split()
+        l = str(l[1])
+        return l
 
 def get_params(dic):
     try:
@@ -109,11 +122,17 @@ data = convert_dict(contents)
 
 # Get keys and return a dictionary
 domain = get_domainName()
-cluster = get_clusters()
-workers_list = get_workmanagerName(domain)
+if domain is None:
+    print '{}'
+    sys.exit(0)
+else:
+    cluster = get_clusters()
+    workers_list = get_workmanagerName(domain)
+
+#
 dic = {}
 
-# Tuple of properties for workamanager default  -_-
+# Tuple of properties for workmanager default
 tuple_values = ('defaultFairShareReqClass', 'defaultCapacityConstraint', 'defaultMaxThreadsConstraint', 'defaultMinThreadsConstraint')
 
 for worker in workers_list:
@@ -124,8 +143,13 @@ for worker in workers_list:
         value = value.replace('{DomainName}', domain)
         value = value.replace('{WorkManagerName}', worker)
         value = value.replace('{ClusterName}', cluster[0])
-        value = value.replace('{worker}', get_worker(value))
-        dic[worker][key] = value
+
+        # This is a hotfix for some WLS not having all workers configurated properly.
+        if get_worker(value) is None or get_worker(value) is []:
+            continue
+        else:
+            value = value.replace('{worker}', get_worker(value))
+            dic[worker][key] = value
 
 
 # Do the magic

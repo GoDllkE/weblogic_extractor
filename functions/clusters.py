@@ -31,6 +31,7 @@ def get_clusters_servers(data, cluster):
             srv = srv.split("=")
             srv = srv[1].split(",")
             lista.append(srv[0])
+        lista.sort()
         return lista
     except raiseWLSTException:
         raise
