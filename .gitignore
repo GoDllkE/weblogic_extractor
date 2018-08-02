@@ -1,0 +1,12 @@
+# Project files
+.vscode/
+.ideia/
+
+# File type
+*.yaml
+
+# Generated files
+gathered-data.yaml
+
+#
+builds/
