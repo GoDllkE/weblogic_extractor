@@ -62,7 +62,6 @@ def key_is_template(content):
     # Any of those keys matched the reserver template-key
     return False
 
-
 def content_filter(content):
     """
     Function to filter content received from a certain WLST subprocess.
@@ -75,7 +74,6 @@ def content_filter(content):
         return None
     else:
         return content[-1]
-
 
 def call_children(credentials, event_name, content):
     """
@@ -127,7 +125,6 @@ def call_children(credentials, event_name, content):
     output, errors = ps.communicate()
     output = output.splitlines()
     return output
-
 
 # -------------------------------------------------------------------------- #
 # Script session
@@ -307,3 +304,4 @@ with open(credentials[2].split('.')[0].lower() + '.yaml', 'w') as outfile:
 
 # End of run
 print "Extractor process complete!"
+

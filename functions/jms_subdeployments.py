@@ -101,7 +101,6 @@ data = convert_dict(contents)
 # Get keys and return a dictionary
 jms_module = get_jms_modules()
 
-
 #
 if jms_module is None:
     print '{}'
