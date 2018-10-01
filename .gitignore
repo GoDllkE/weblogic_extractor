@@ -3,10 +3,12 @@
 .ideia/
 
 # File type
-*.yaml
+# *.yaml
 
 # Generated files
 gathered-data.yaml
+data.yaml
 
 #
+build/
 builds/

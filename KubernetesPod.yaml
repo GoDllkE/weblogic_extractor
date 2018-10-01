@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    name: 'python2-builder'
+spec:
+  containers:
+  - name: py2-builder
+    image: registry.ng.bluemix.net/livelo/stretch_python2:20
+    resources:
+      limits:
+        memory: 4096Mi
+    command:
+    - cat
+    tty: true
+    volumeMounts:
+    - mountPath: /var/run/docker.sock
+      name: docker-sock
+    securityContext:
+      allowPrivilegeEscalation: false
+  volumes:
+  - name: docker-sock
+    hostPath:
+      path: /var/run/docker.sock
+      type: Socket
