@@ -42,4 +42,4 @@ Ao final da execução, será gerado um arquivo YAML respectivo a tecnologia com
 
 > Gustavo Toledo - gustavot53@gmail.com
 
-> Tiago Albuquerque - tiago.Albuquerque@gmail.com
+> Tiago Albuquerque - tiagog85@gmail.com 
