@@ -1,9 +1,10 @@
-import os
-import sys
 import ast
-import yaml
 import getopt
+import os
 import subprocess as sub
+import sys
+
+import yaml
 
 
 def data_load(file_input):
@@ -62,6 +63,7 @@ def key_is_template(content):
     # Any of those keys matched the reserver template-key
     return False
 
+
 def content_filter(content):
     """
     Function to filter content received from a certain WLST subprocess.
@@ -74,6 +76,7 @@ def content_filter(content):
         return None
     else:
         return content[-1]
+
 
 def call_children(credentials, event_name, content):
     """
@@ -116,15 +119,20 @@ def call_children(credentials, event_name, content):
 
     # Execute process
     if type(content) == list:
-        ps = sub.Popen((wlst_path, event_path, username, password, hostname, str(content[0]), str(content[1])), stdout=sub.PIPE)
+        ps = sub.Popen((wlst_path, event_path, username, password, hostname,
+                        str(content[0]), str(content[1])),
+                       stdout=sub.PIPE)
     else:
-        ps = sub.Popen((wlst_path, event_path, username, password, hostname, str(content)), stdout=sub.PIPE)
+        ps = sub.Popen((wlst_path, event_path, username, password, hostname,
+                        str(content)),
+                       stdout=sub.PIPE)
     ps.wait()
 
     # Get output and return it
     output, errors = ps.communicate()
     output = output.splitlines()
     return output
+
 
 # -------------------------------------------------------------------------- #
 # Script session
@@ -138,8 +146,7 @@ skip_event = False
 # Change it as your necessity demands
 data = {}
 hiera_file = [
-    "resources/teste.yaml",
-    "resources/template-teste.yaml",
+    "resources/teste.yaml", "resources/template-teste.yaml",
     "resources/template.yaml"
 ]
 
@@ -158,19 +165,23 @@ for template_file in hiera_file:
 # If they where default values... then update they and update template file.
 # For username
 if data['profile_weblogic::single_domain::weblogic_username'] == '<some-username>':
-    data['profile_weblogic::single_domain::weblogic_username'] = raw_input("Insert the WLST username (default: weblogic): ")
+    data['profile_weblogic::single_domain::weblogic_username'] = raw_input(
+        "Insert the WLST username (default: weblogic): ")
     if len(data['profile_weblogic::single_domain::weblogic_username']) < 3:
         data['profile_weblogic::single_domain::weblogic_username'] = 'weblogic'
 
 # For password
 if data['profile_weblogic::single_domain::weblogic_password'] == '<some-password>':
-    data['profile_weblogic::single_domain::weblogic_password'] = raw_input("Insert the WLST password: ")
+    data['profile_weblogic::single_domain::weblogic_password'] = raw_input(
+        "Insert the WLST password: ")
 
 # For hostname
 if data['profile_weblogic::single_domain::weblogic_hostname'] == '<some-hostname>':
-    data['profile_weblogic::single_domain::weblogic_hostname'] = raw_input("Insert the WLST hostname (default: "+os.uname()[1]+"): ")
+    data['profile_weblogic::single_domain::weblogic_hostname'] = raw_input(
+        "Insert the WLST hostname (default: " + os.uname()[1] + "): ")
     if len(data['profile_weblogic::single_domain::weblogic_hostname']) < 3:
-        data['profile_weblogic::single_domain::weblogic_hostname'] = os.uname()[1]
+        data['profile_weblogic::single_domain::weblogic_hostname'] = os.uname(
+        )[1]
 
 # Get access credentials to weblogic server
 credentials = [
@@ -188,17 +199,6 @@ for template_file in hiera_file:
     else:
         continue
 
-# Remove specified key if not CLM technologies
-for item in ['clm', 'tst']:
-    if item in credentials[2]:
-        if 'profile_weblogic::single_domain::livelo_custom_directories' in remove_keys_list:
-            remove_keys_list.remove('profile_weblogic::single_domain::livelo_custom_directories')
-        break
-    else:
-        if 'profile_weblogic::single_domain::livelo_custom_directories' not in remove_keys_list:
-            remove_keys_list.append('profile_weblogic::single_domain::livelo_custom_directories')
-        continue
-
 # Trigger all events on template
 for index, key in enumerate(data):
     # Avoid using first 3 keys (credentials)
@@ -208,10 +208,6 @@ for index, key in enumerate(data):
     # Get event name (last valid word on key)
     event = key.split(":")
     event = event[-1]
-
-    # Ignore keys
-    if event in ['livelo_custom_directories', 'source_scripts']:
-        continue
 
     # Retrieve options and arguments
     opts, args = getopt.getopt(sys.argv[1:], "dv", ['debug', 'verbose'])
@@ -304,4 +300,3 @@ with open(credentials[2].split('.')[0].lower() + '.yaml', 'w') as outfile:
 
 # End of run
 print "Extractor process complete!"
-
