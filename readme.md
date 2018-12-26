@@ -2,7 +2,7 @@
 ---
 Versão: 1.0.0
 
-Este script foi desenvolvido com o propósito de extrair todas as informações/configurações de um weblogic a fim de ser utilizado posteriormente nas automações de gerenciamento do weblogic utilizando o modulo puppet [lalala](lalalala).
+Este script foi desenvolvido com o propósito de extrair todas as informações/configurações de um weblogic a fim de ser utilizado posteriormente nas automações de gerenciamento do weblogic utilizando o modulo puppet [biemond/orawls](https://github.com/biemond/biemond-orawls).
 
 
 #### Requisitos
@@ -41,4 +41,5 @@ Ao final da execução, será gerado um arquivo YAML respectivo a tecnologia com
 #### Contribuidores
 
 > Gustavo Toledo - gustavot53@gmail.com
+
 > Tiago Albuquerque - tiago.Albuquerque@gmail.com
